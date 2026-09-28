@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mac Remote Cam</title>
+  <style>
+    body { background: #0f172a; color: #f8fafc; font-family: -apple-system, sans-serif; margin: 0; padding: 16px; }
+    .container { max-width: 540px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
+    .viewport { aspect-ratio: 16/9; background: #000; border-radius: 14px; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+    #stream-img { width: 100%; height: 100%; object-fit: contain; display: none; }
+    button { padding: 14px; border-radius: 12px; border: none; font-weight: 600; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Mac Remote Cam</h1>
+    <div class="viewport"><img id="stream-img" /></div>
+    <button onclick="fetch('/api/start', {method:'POST'})">Turn On Camera</button>
+    <button onclick="fetch('/api/snapshot', {method:'POST'})">Snapshot</button>
+  </div>
+</body>
+</html>
