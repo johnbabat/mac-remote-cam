@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Mac Remote Cam – Sign in</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+      background: #090d16; color: #f1f5f9;
+      min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px;
+    }
+    form {
+      width: 100%; max-width: 360px; background: #151d2a; border: 1px solid #243044;
+      border-radius: 16px; padding: 28px 22px; display: flex; flex-direction: column; gap: 14px;
+    }
+    h1 { font-size: 1.25rem; }
+    p { font-size: 0.85rem; color: #8e9db3; }
+    input {
+      font-size: 1rem; padding: 14px; border-radius: 10px; border: 1px solid #243044;
+      background: #0d1420; color: #f1f5f9;
+    }
+    button {
+      font-size: 1rem; font-weight: 700; padding: 14px; border: none; border-radius: 10px;
+      background: #10b981; color: #064e3b; cursor: pointer;
+    }
+    button:disabled { opacity: 0.6; }
+    #error { color: #f87171; font-size: 0.85rem; min-height: 1.2em; }
+  </style>
+</head>
+<body>
+  <form id="login-form">
+    <h1>Mac Remote Cam</h1>
+    <p>Enter your password to continue.</p>
+    <input id="password" type="password" autocomplete="current-password" placeholder="Password" required autofocus>
+    <button id="submit" type="submit">Sign in</button>
+    <div id="error"></div>
+  </form>
+  <script>
+    const form = document.getElementById('login-form');
+    const btn = document.getElementById('submit');
+    const err = document.getElementById('error');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      btn.disabled = true; err.textContent = '';
+      try {
+        const res = await fetch('/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: document.getElementById('password').value })
+        });
+        if (res.ok) { location.href = '/'; return; }
+        const data = await res.json().catch(() => ({}));
+        err.textContent = data.detail || 'Sign in failed';
+      } catch (_) {
+        err.textContent = 'Cannot reach the Mac';
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
