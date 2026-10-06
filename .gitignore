@@ -1,5 +1,21 @@
+# Environment & Secrets
 .env
+
+# Virtual Environment
 .venv/
+venv/
+env/
+
+# Captured Media & Logs
+media/
+snapshots/
+*.part
+*.log
+
+# Python Cache
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+
+# macOS
 .DS_Store
