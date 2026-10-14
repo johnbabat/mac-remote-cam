@@ -56,7 +56,7 @@ class CameraManager:
         self._last_noise_time = 0.0
         # RMS threshold: 16-bit PCM values range up to 32767.
         # Ambient quiet room: ~50-300 RMS. Normal conversation / door knock / clap: 800-4000+ RMS.
-        self.noise_threshold_rms = 1000.0
+        self.noise_threshold_rms = 850.0
         self.noise_persistence_count = 0
 
         self.media_dir = "media"
