@@ -1,23 +1,1001 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mac Remote Cam</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Mac Remote Cam & Mic</title>
   <style>
-    body { background: #0f172a; color: #f8fafc; font-family: -apple-system, sans-serif; margin: 0; padding: 16px; }
-    .container { max-width: 540px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
-    .viewport { aspect-ratio: 16/9; background: #000; border-radius: 14px; overflow: hidden; display: flex; align-items: center; justify-content: center; }
-    #stream-img { width: 100%; height: 100%; object-fit: contain; display: none; }
-    button { padding: 14px; border-radius: 12px; border: none; font-weight: 600; cursor: pointer; }
+    :root {
+      --bg: #090d16;
+      --card: #151d2a;
+      --card-hover: #1c2738;
+      --border: #243044;
+      --text: #f1f5f9;
+      --text-muted: #8e9db3;
+      --green: #10b981;
+      --red: #ef4444;
+      --blue: #3b82f6;
+      --accent: #6366f1;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 14px 14px calc(24px + env(safe-area-inset-bottom, 16px));
+    }
+
+    .container {
+      width: 100%;
+      max-width: 680px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 4px 2px;
+    }
+
+    .title-group h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .badge-group {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 6px;
+    }
+
+    .badge {
+      font-size: 0.72rem;
+      padding: 3px 8px;
+      border-radius: 9999px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .badge-off {
+      background: rgba(239, 68, 68, 0.12);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.25);
+    }
+
+    .badge-on {
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .badge-rec {
+      background: rgba(239, 68, 68, 0.2);
+      color: #ef4444;
+      border: 1px solid #ef4444;
+      animation: pulse 1.2s infinite;
+    }
+
+    .badge-monitor {
+      background: rgba(245, 158, 11, 0.15);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.35);
+    }
+
+    .badge-monitor.alert {
+      background: rgba(239, 68, 68, 0.25);
+      color: #f87171;
+      border: 1px solid #ef4444;
+      animation: pulse 0.8s infinite;
+    }
+
+    .badge-noise {
+      background: rgba(168, 85, 247, 0.15);
+      color: #c084fc;
+      border: 1px solid rgba(168, 85, 247, 0.35);
+    }
+
+    .badge-noise.alert {
+      background: rgba(239, 68, 68, 0.25);
+      color: #f87171;
+      border: 1px solid #ef4444;
+      animation: pulse 0.8s infinite;
+    }
+
+    .btn-monitor-active {
+      background: rgba(245, 158, 11, 0.2) !important;
+      border-color: #f59e0b !important;
+      color: #fbbf24 !important;
+    }
+
+    .btn-noise-active {
+      background: rgba(168, 85, 247, 0.2) !important;
+      border-color: #a855f7 !important;
+      color: #c084fc !important;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.4; }
+      100% { opacity: 1; }
+    }
+
+    .indicator-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    /* Video Player Viewport */
+    .viewport {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background-color: #000;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6);
+    }
+
+    #stream-img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: none;
+    }
+
+    .placeholder-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      color: var(--text-muted);
+      text-align: center;
+      padding: 16px;
+    }
+
+    .placeholder-icon {
+      width: 44px;
+      height: 44px;
+      opacity: 0.5;
+    }
+
+    .placeholder-text {
+      font-size: 0.9rem;
+    }
+
+    /* Primary On/Off Button */
+    .btn-power {
+      appearance: none;
+      border: none;
+      border-radius: 14px;
+      padding: 15px 20px;
+      font-size: 1.05rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: all 0.15s ease-in-out;
+      width: 100%;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+    }
+
+    .btn-power:active {
+      transform: scale(0.98);
+    }
+
+    .btn-power-on {
+      background: #10b981;
+      color: #064e3b;
+    }
+
+    .btn-power-off {
+      background: #ef4444;
+      color: #fff;
+    }
+
+    /* Controls Grid */
+    .actions-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 6px;
+    }
+
+    .btn-action {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 4px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+      text-align: center;
+      transition: background 0.15s, border-color 0.15s, transform 0.1s;
+    }
+
+    .btn-action:active:not(:disabled) {
+      transform: scale(0.96);
+    }
+
+    .btn-action svg {
+      width: 22px;
+      height: 22px;
+    }
+
+    .btn-action:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+
+    .btn-record-active {
+      background: rgba(239, 68, 68, 0.2);
+      border-color: #ef4444;
+      color: #f87171;
+    }
+
+    .btn-audio-active {
+      background: rgba(59, 130, 246, 0.2);
+      border-color: #3b82f6;
+      color: #60a5fa;
+    }
+
+    /* Info Bar */
+    .info-bar {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    /* Downloads & Gallery Section */
+    .gallery-section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .gallery-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .gallery-header h2 {
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+
+    .gallery-tabs {
+      display: flex;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      padding: 3px;
+      gap: 4px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 6px 10px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      transition: all 0.15s ease;
+    }
+
+    .tab-btn.active {
+      background: var(--card-hover);
+      color: var(--text);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    }
+
+    .tab-count {
+      font-size: 0.7rem;
+      padding: 1px 6px;
+      border-radius: 9999px;
+      background: rgba(255,255,255,0.1);
+    }
+
+    .btn-refresh {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 4px;
+    }
+
+    .file-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+
+    .file-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(255, 255, 255, 0.03);
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      font-size: 0.82rem;
+    }
+
+    .file-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      overflow: hidden;
+    }
+
+    .file-name {
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 200px;
+    }
+
+    .file-sub {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+
+    .file-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .download-link {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: #2563eb;
+      color: white;
+      text-decoration: none;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.75rem;
+    }
+
+    .btn-delete {
+      display: flex;
+      align-items: center;
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #f87171;
+      padding: 6px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.75rem;
+      transition: background 0.15s;
+    }
+
+    .btn-delete:active {
+      transform: scale(0.95);
+    }
+
+    .toast {
+      position: fixed;
+      bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+      left: 50%;
+      transform: translateX(-50%) translateY(120px);
+      background: #1e293b;
+      color: #f8fafc;
+      padding: 12px 20px;
+      border-radius: 9999px;
+      font-size: 0.9rem;
+      border: 1px solid var(--border);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      pointer-events: none;
+      z-index: 100;
+      white-space: nowrap;
+    }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Mac Remote Cam</h1>
-    <div class="viewport"><img id="stream-img" /></div>
-    <button onclick="fetch('/api/start', {method:'POST'})">Turn On Camera</button>
-    <button onclick="fetch('/api/snapshot', {method:'POST'})">Snapshot</button>
+    <header>
+      <div class="title-group">
+        <h1>Mac Remote Cam</h1>
+      </div>
+      <div class="badge-group">
+        <div id="noise-badge" class="badge badge-noise" style="display: none;">
+          <span class="indicator-dot"></span>
+          <span id="noise-label">NOISE MON</span>
+        </div>
+        <div id="monitor-badge" class="badge badge-monitor" style="display: none;">
+          <span class="indicator-dot"></span>
+          <span id="monitor-label">MONITORING</span>
+        </div>
+        <div id="rec-badge" class="badge badge-rec" style="display: none;">
+          <span class="indicator-dot"></span>
+          <span>REC <span id="rec-timer">0s</span></span>
+        </div>
+        <div id="status-badge" class="badge badge-off">
+          <span class="indicator-dot"></span>
+          <span id="status-label">OFFLINE</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Camera Viewport -->
+    <div class="viewport">
+      <img id="stream-img" alt="Live Camera Stream" />
+      <div id="placeholder" class="placeholder-state">
+        <svg class="placeholder-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+        </svg>
+        <div class="placeholder-text">Camera & mic are sleeping.<br>Tap "Turn On" to activate stream.</div>
+      </div>
+    </div>
+
+    <!-- Main Power Toggle -->
+    <button id="toggle-btn" class="btn-power btn-power-on" onclick="toggleCamera()">
+      <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z" />
+      </svg>
+      <span>Turn On Camera</span>
+    </button>
+
+    <!-- Actions (Audio, Record, Snapshot, Monitor) -->
+    <div class="actions-grid">
+      <!-- Audio Toggle -->
+      <button id="audio-btn" class="btn-action" onclick="toggleAudio()" disabled>
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+        </svg>
+        <span id="audio-label">Listen Mic</span>
+      </button>
+
+      <!-- Record Video Toggle -->
+      <button id="record-btn" class="btn-action" onclick="toggleRecord()" disabled>
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+        </svg>
+        <span id="record-label">Record</span>
+      </button>
+
+      <!-- Motion Monitor Toggle -->
+      <button id="monitor-btn" class="btn-action" onclick="toggleMonitor()">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+        </svg>
+        <span id="monitor-label-btn">Motion</span>
+      </button>
+
+      <!-- Noise Monitor Toggle -->
+      <button id="noise-btn" class="btn-action" onclick="toggleNoiseMonitor()">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+        </svg>
+        <span id="noise-label-btn">Noise Mon</span>
+      </button>
+
+      <!-- Photo Snapshot -->
+      <button id="snap-btn" class="btn-action" onclick="takeSnapshot()" disabled>
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+        <span>Snapshot</span>
+      </button>
+    </div>
+
+    <!-- Info Bar -->
+    <div class="info-bar">
+      <span>FPS: <strong id="fps-val" style="color:var(--text);">0.0</strong></span>
+      <span>Awake: <strong id="awake-val" style="color:var(--text-muted);">…</strong></span>
+      <button class="btn-refresh" onclick="logout()" style="font-size:0.8rem;">Sign out</button>
+    </div>
+
+    <!-- Downloads Gallery -->
+    <div class="gallery-section">
+      <div class="gallery-header">
+        <h2>Saved Files</h2>
+        <button class="btn-refresh" onclick="loadGallery()" title="Refresh files">
+          <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="gallery-tabs">
+        <button id="tab-photos" class="tab-btn active" onclick="switchGalleryTab('photo')">
+          <span>📸 Pictures</span>
+          <span id="count-photos" class="tab-count">0</span>
+        </button>
+        <button id="tab-videos" class="tab-btn" onclick="switchGalleryTab('video')">
+          <span>🎥 Videos</span>
+          <span id="count-videos" class="tab-count">0</span>
+        </button>
+      </div>
+
+      <div id="file-list" class="file-list">
+        <div style="font-size:0.8rem; color:var(--text-muted); text-align:center; padding:12px;">No captures yet</div>
+      </div>
+    </div>
   </div>
+
+  <div id="toast" class="toast">Action triggered</div>
+
+  <script>
+    let isCameraActive = false;
+    let isRecording = false;
+    let isAudioPlaying = false;
+    let isMonitoring = false;
+    let isNoiseMonitoring = false;
+
+    const streamImg = document.getElementById('stream-img');
+    const placeholder = document.getElementById('placeholder');
+    const toggleBtn = document.getElementById('toggle-btn');
+    const recordBtn = document.getElementById('record-btn');
+    const recordLabel = document.getElementById('record-label');
+    const monitorBtn = document.getElementById('monitor-btn');
+    const monitorLabelBtn = document.getElementById('monitor-label-btn');
+    const noiseBtn = document.getElementById('noise-btn');
+    const noiseLabelBtn = document.getElementById('noise-label-btn');
+    const snapBtn = document.getElementById('snap-btn');
+    const audioBtn = document.getElementById('audio-btn');
+    const audioLabel = document.getElementById('audio-label');
+    const statusBadge = document.getElementById('status-badge');
+    const statusLabel = document.getElementById('status-label');
+    const monitorBadge = document.getElementById('monitor-badge');
+    const monitorLabel = document.getElementById('monitor-label');
+    const noiseBadge = document.getElementById('noise-badge');
+    const noiseLabel = document.getElementById('noise-label');
+    const recBadge = document.getElementById('rec-badge');
+    const recTimer = document.getElementById('rec-timer');
+    const fpsVal = document.getElementById('fps-val');
+    const awakeVal = document.getElementById('awake-val');
+    const fileList = document.getElementById('file-list');
+    const toast = document.getElementById('toast');
+
+    let toastTimer = null;
+    function showToast(msg) {
+      toast.innerText = msg;
+      toast.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.remove('show'), 2500);
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    // Fetch helper: redirects to login on 401, surfaces server error messages.
+    async function api(url, options = {}) {
+      const res = await fetch(url, options);
+      if (res.status === 401) {
+        location.href = '/login';
+        throw new Error('Not signed in');
+      }
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || `Request failed (${res.status})`);
+      return data;
+    }
+
+    async function logout() {
+      await fetch('/logout', { method: 'POST' }).catch(() => {});
+      location.href = '/login';
+    }
+
+    function updateUI(status) {
+      isCameraActive = status.is_active;
+      isRecording = status.is_recording;
+      isMonitoring = status.is_monitoring;
+      isNoiseMonitoring = status.is_noise_monitoring;
+
+      awakeVal.innerText = status.caffeinated ? 'Caffeinated' : 'Not kept awake';
+      awakeVal.style.color = status.caffeinated ? 'var(--green)' : 'var(--red)';
+
+      if (isCameraActive) {
+        statusBadge.className = 'badge badge-on';
+        statusLabel.innerText = 'LIVE';
+        toggleBtn.className = 'btn-power btn-power-off';
+        toggleBtn.innerHTML = `
+          <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span>Turn Off Camera</span>`;
+        snapBtn.disabled = false;
+        recordBtn.disabled = false;
+        audioBtn.disabled = false;
+
+        if (!streamImg.src || streamImg.src.indexOf('/stream') === -1) {
+          streamImg.src = '/stream?' + Date.now();
+        }
+        streamImg.style.display = 'block';
+        placeholder.style.display = 'none';
+        fpsVal.innerText = Number(status.fps).toFixed(1);
+      } else {
+        statusBadge.className = 'badge badge-off';
+        statusLabel.innerText = 'OFFLINE';
+        toggleBtn.className = 'btn-power btn-power-on';
+        toggleBtn.innerHTML = `
+          <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+          <span>Turn On Camera</span>`;
+        snapBtn.disabled = true;
+        recordBtn.disabled = true;
+        audioBtn.disabled = true;
+
+        streamImg.removeAttribute('src');
+        streamImg.style.display = 'none';
+        placeholder.style.display = 'flex';
+        fpsVal.innerText = '0.0';
+
+        if (isAudioPlaying) stopAudio();
+      }
+
+      // Motion Monitoring Badge & Button
+      if (isMonitoring) {
+        monitorBadge.style.display = 'flex';
+        if (status.motion_detected) {
+          monitorBadge.className = 'badge badge-monitor alert';
+          monitorLabel.innerText = 'MOTION!';
+        } else {
+          monitorBadge.className = 'badge badge-monitor';
+          monitorLabel.innerText = 'MONITORING';
+        }
+        monitorBtn.classList.add('btn-monitor-active');
+        monitorLabelBtn.innerText = 'Stop Mon';
+      } else {
+        monitorBadge.style.display = 'none';
+        monitorBtn.classList.remove('btn-monitor-active');
+        monitorLabelBtn.innerText = 'Motion';
+      }
+
+      // Noise Monitoring Badge & Button
+      if (isNoiseMonitoring) {
+        noiseBadge.style.display = 'flex';
+        if (status.noise_detected) {
+          noiseBadge.className = 'badge badge-noise alert';
+          noiseLabel.innerText = 'NOISE!';
+        } else {
+          noiseBadge.className = 'badge badge-noise';
+          noiseLabel.innerText = 'NOISE MON';
+        }
+        noiseBtn.classList.add('btn-noise-active');
+        noiseLabelBtn.innerText = 'Stop Noise';
+      } else {
+        noiseBadge.style.display = 'none';
+        noiseBtn.classList.remove('btn-noise-active');
+        noiseLabelBtn.innerText = 'Noise Mon';
+      }
+
+      // Recording Badge
+      if (isRecording) {
+        recBadge.style.display = 'flex';
+        let recType = '';
+        if (status.auto_record_trigger_type === 'motion' || status.is_motion_recording) recType = 'MOTION ';
+        else if (status.auto_record_trigger_type === 'noise' || status.is_noise_recording) recType = 'NOISE ';
+        recTimer.innerText = recType + status.record_duration + 's';
+        recordBtn.classList.add('btn-record-active');
+        recordLabel.innerText = 'Stop Rec';
+      } else {
+        recBadge.style.display = 'none';
+        recordBtn.classList.remove('btn-record-active');
+        recordLabel.innerText = 'Record';
+      }
+    }
+
+    async function checkStatus() {
+      try {
+        updateUI(await api('/api/status'));
+      } catch (e) {
+        console.error('Status error:', e);
+      }
+    }
+
+    async function toggleMonitor() {
+      monitorBtn.disabled = true;
+      try {
+        const data = await api('/api/monitor/toggle', { method: 'POST' });
+        showToast(data.message);
+        await checkStatus();
+      } catch (err) {
+        showToast(err.message);
+      } finally {
+        monitorBtn.disabled = false;
+      }
+    }
+
+    async function toggleNoiseMonitor() {
+      noiseBtn.disabled = true;
+      try {
+        const data = await api('/api/monitor/noise/toggle', { method: 'POST' });
+        showToast(data.message);
+        await checkStatus();
+      } catch (err) {
+        showToast(err.message);
+      } finally {
+        noiseBtn.disabled = false;
+      }
+    }
+
+    async function toggleCamera() {
+      const endpoint = isCameraActive ? '/api/stop' : '/api/start';
+      toggleBtn.disabled = true;
+      showToast(isCameraActive ? 'Turning off…' : 'Turning on…');
+      try {
+        const data = await api(endpoint, { method: 'POST' });
+        showToast(data.message);
+        await checkStatus();
+        if (!isCameraActive) loadGallery(); // a recording may have just been saved
+      } catch (err) {
+        showToast(err.message);
+      } finally {
+        toggleBtn.disabled = false;
+      }
+    }
+
+    async function toggleRecord() {
+      recordBtn.disabled = true;
+      const stopping = isRecording;
+      if (stopping) showToast('Saving recording…');
+      try {
+        const data = await api(stopping ? '/api/record/stop' : '/api/record/start', { method: 'POST' });
+        showToast(data.message);
+        await checkStatus();
+        if (stopping) loadGallery();
+      } catch (err) {
+        showToast(err.message);
+      } finally {
+        recordBtn.disabled = false;
+      }
+    }
+
+    async function takeSnapshot() {
+      snapBtn.disabled = true;
+      try {
+        await api('/api/snapshot', { method: 'POST' });
+        showToast('📸 Snapshot saved!');
+        loadGallery();
+      } catch (err) {
+        showToast(err.message);
+      } finally {
+        snapBtn.disabled = false;
+      }
+    }
+
+    // ------------------------------------------------------------------
+    // Live audio via the Web Audio API.
+    // iPhone Safari can't reliably play an endless stream in an <audio> tag,
+    // so we fetch raw 16-bit PCM and schedule it into an AudioContext.
+    // The AudioContext must be created/resumed synchronously inside the tap.
+    // ------------------------------------------------------------------
+    let audioCtx = null;
+    let audioAbort = null;
+
+    function toggleAudio() {
+      if (isAudioPlaying) stopAudio();
+      else startAudio();
+    }
+
+    async function startAudio() {
+      // --- synchronous part: runs inside the tap gesture ---
+      if (navigator.audioSession) {
+        // Safari 16.4+: play even when the iPhone's silent switch is on
+        try { navigator.audioSession.type = 'playback'; } catch (_) {}
+      }
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const resumed = audioCtx.resume();
+      // Play one silent sample to fully unlock audio on iOS
+      const unlock = audioCtx.createBufferSource();
+      unlock.buffer = audioCtx.createBuffer(1, 1, 22050);
+      unlock.connect(audioCtx.destination);
+      unlock.start(0);
+
+      const abort = new AbortController();
+      audioAbort = abort;
+      isAudioPlaying = true;
+      audioBtn.classList.add('btn-audio-active');
+      audioLabel.innerText = 'Mute Mic';
+      showToast('Connecting to mic…');
+
+      // --- async part ---
+      try {
+        await resumed;
+        const res = await fetch('/audio?' + Date.now(), { signal: abort.signal, cache: 'no-store' });
+        if (res.status === 401) { location.href = '/login'; return; }
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.detail || `Audio unavailable (${res.status})`);
+        }
+        const rate = parseInt(res.headers.get('X-Sample-Rate'), 10) || 48000;
+        const reader = res.body.getReader();
+        let leftover = null;
+        let nextTime = 0;
+        let started = false;
+
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          let bytes = value;
+          if (leftover) {
+            const merged = new Uint8Array(leftover.length + bytes.length);
+            merged.set(leftover);
+            merged.set(bytes, leftover.length);
+            bytes = merged;
+            leftover = null;
+          }
+          const usable = bytes.length - (bytes.length % 2);
+          if (usable < bytes.length) leftover = bytes.slice(usable);
+          if (usable === 0) continue;
+
+          const pcm = new Int16Array(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + usable));
+          const buf = audioCtx.createBuffer(1, pcm.length, rate);
+          const ch = buf.getChannelData(0);
+          for (let i = 0; i < pcm.length; i++) ch[i] = pcm[i] / 32768;
+
+          const src = audioCtx.createBufferSource();
+          src.buffer = buf;
+          src.connect(audioCtx.destination);
+
+          const now = audioCtx.currentTime;
+          // Re-sync on underrun, or if we've drifted too far behind live
+          if (nextTime < now + 0.02 || nextTime > now + 1.0) nextTime = now + 0.15;
+          src.start(nextTime);
+          nextTime += buf.duration;
+
+          if (!started) { started = true; showToast('🎙️ Live audio streaming'); }
+        }
+        if (isAudioPlaying && audioAbort === abort) showToast('Audio stream ended');
+      } catch (err) {
+        if (err.name !== 'AbortError') showToast('⚠️ ' + err.message);
+      } finally {
+        if (audioAbort === abort) resetAudioUI();
+      }
+    }
+
+    function resetAudioUI() {
+      isAudioPlaying = false;
+      audioAbort = null;
+      audioBtn.classList.remove('btn-audio-active');
+      audioLabel.innerText = 'Listen Mic';
+    }
+
+    function stopAudio() {
+      if (audioAbort) audioAbort.abort();
+      resetAudioUI();
+      if (audioCtx) audioCtx.suspend().catch(() => {});
+      showToast('Mic muted');
+    }
+
+    // ------------------------------------------------------------------
+    // Gallery with Pictures / Videos tabs
+    // ------------------------------------------------------------------
+    let activeGalleryTab = 'photo'; // 'photo' or 'video'
+    let cachedFiles = [];
+
+    function switchGalleryTab(tab) {
+      activeGalleryTab = tab;
+      document.getElementById('tab-photos').classList.toggle('active', tab === 'photo');
+      document.getElementById('tab-videos').classList.toggle('active', tab === 'video');
+      renderGallery();
+    }
+
+    function renderGallery() {
+      const photos = cachedFiles.filter(f => f.type === 'photo');
+      const videos = cachedFiles.filter(f => f.type === 'video');
+
+      document.getElementById('count-photos').innerText = photos.length;
+      document.getElementById('count-videos').innerText = videos.length;
+
+      const filtered = activeGalleryTab === 'photo' ? photos : videos;
+
+      if (filtered.length === 0) {
+        const emptyLabel = activeGalleryTab === 'photo' ? 'No pictures taken yet' : 'No videos recorded yet';
+        fileList.innerHTML = `<div style="font-size:0.8rem; color:var(--text-muted); text-align:center; padding:16px;">${emptyLabel}</div>`;
+        return;
+      }
+
+      fileList.innerHTML = filtered.map(f => {
+        const name = escapeHtml(f.name);
+        return `
+        <div class="file-item">
+          <div class="file-meta">
+            <span class="file-name">${f.type === 'video' ? '🎥' : '📸'} ${name}</span>
+            <span class="file-sub">${escapeHtml(f.created)} • ${f.size_mb} MB</span>
+          </div>
+          <div class="file-actions">
+            <a class="download-link" href="${escapeHtml(f.url)}" download="${name}">
+              <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              Save
+            </a>
+            <button class="btn-delete" data-name="${name}" onclick="deleteFile(this.dataset.name)" title="Delete">
+              <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    async function loadGallery() {
+      try {
+        const data = await api('/api/gallery');
+        cachedFiles = data.files || [];
+        renderGallery();
+      } catch (e) {
+        console.error('Gallery error:', e);
+      }
+    }
+
+    async function deleteFile(filename) {
+      if (!confirm(`Delete ${filename}?`)) return;
+      try {
+        await api(`/api/media/${encodeURIComponent(filename)}`, { method: 'DELETE' });
+        showToast(`🗑️ ${filename} deleted`);
+        loadGallery();
+      } catch (err) {
+        showToast(err.message);
+      }
+    }
+
+    // Status poll doubles as a "someone is watching" heartbeat for auto-off.
+    setInterval(checkStatus, 2500);
+    checkStatus();
+    loadGallery();
+  </script>
 </body>
 </html>

@@ -193,7 +193,6 @@ def toggle_monitor():
     return {"success": True, "message": message, "is_monitoring": camera_manager.is_monitoring}
 
 
-# Noise monitor endpoint
 @app.post("/api/monitor/noise/toggle")
 def toggle_noise_monitor():
     camera_manager.media_dir = MEDIA_DIR
