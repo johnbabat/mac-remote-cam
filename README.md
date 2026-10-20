@@ -2,6 +2,8 @@
 
 A self-hosted, privacy-first remote camera, microphone, and smart surveillance system built for macOS. Control and monitor your Mac's camera and microphone from any smartphone browser over local Wi-Fi or from anywhere in the world via Tailscale.
 
+**Intended use:** personal home monitoring (your own home, pets, packages) on your own Mac. Everything runs locally and recordings stay on your machine; it is not a hosted service and does not collect data about other users.
+
 ---
 
 ## Features
