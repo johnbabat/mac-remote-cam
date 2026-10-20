@@ -144,4 +144,8 @@ To securely access your camera over 4G/5G cellular or external Wi-Fi without ope
 
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE).
+
+## Roadmap
+
+Planned features and improvements are tracked in [ROADMAP.md](ROADMAP.md).
